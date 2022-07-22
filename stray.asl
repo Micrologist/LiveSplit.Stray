@@ -18,13 +18,13 @@ startup
             MessageBoxButtons.YesNo,MessageBoxIcon.Question
         );
         if (timingMessage == DialogResult.Yes)
-        {8
+        {
             timer.CurrentTimingMethod = TimingMethod.GameTime;
         }
     }
 
     vars.SetTextComponent = (Action<string, string>)((id, text) =>
-    {3
+    {
         var textSettings = timer.Layout.Components.Where(x => x.GetType().Name == "TextComponent").Select(x => x.GetType().GetProperty("Settings").GetValue(x, null));
         var textSetting = textSettings.FirstOrDefault(x => (x.GetType().GetProperty("Text1").GetValue(x, null) as string) == id);
         if (textSetting == null)
