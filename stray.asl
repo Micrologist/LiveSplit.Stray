@@ -148,6 +148,7 @@ update
         vars.SetTextComponent("IsLoading", current.loading.ToString());
         vars.SetTextComponent("Cam Target", current.camTarget);
         vars.SetTextComponent("Hud Flag", current.hudFlag.ToString("X8"));
+        vars.SetTextComponent("Chapters Visited", vars.chaptersVisited.Count.ToString());
     }
 }
 
