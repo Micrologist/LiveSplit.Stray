@@ -2,8 +2,8 @@ state("Stray-Win64-Shipping"){}
 
 startup
 {
-    vars.startTimeOffset = 0.567;
-    vars.endTimeOffset = 0.817;
+    vars.startTimeOffset = 0.567f;
+    vars.endTimeOffset = 0.817f;
     vars.endTimeStopwatch = new Stopwatch();
     vars.chaptersVisited = new List<String>() { "None" };
 
@@ -39,7 +39,7 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 
-    settings.Add("debugTextComponents", false, "[Debug] Show tracked values in layout");
+    settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
 
 init
