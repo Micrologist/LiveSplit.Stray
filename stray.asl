@@ -18,13 +18,13 @@ startup
             MessageBoxButtons.YesNo,MessageBoxIcon.Question
         );
         if (timingMessage == DialogResult.Yes)
-        {
+        {8
             timer.CurrentTimingMethod = TimingMethod.GameTime;
         }
     }
 
     vars.SetTextComponent = (Action<string, string>)((id, text) =>
-    {
+    {3
         var textSettings = timer.Layout.Components.Where(x => x.GetType().Name == "TextComponent").Select(x => x.GetType().GetProperty("Settings").GetValue(x, null));
         var textSetting = textSettings.FirstOrDefault(x => (x.GetType().GetProperty("Text1").GetValue(x, null) as string) == id);
         if (textSetting == null)
@@ -49,6 +49,9 @@ init
     int moduleSize = modules.First().ModuleMemorySize;
     switch (moduleSize)
     {
+        case 91013120:
+            version = "rev. 26195";
+            break;
         case 91009024:
             version = "rev. 26176";
             break;
@@ -150,12 +153,15 @@ update
 
 start
 {
-    return (current.map == "BaseMap" && current.camTarget != old.camTarget && current.camTarget == "cam1");
+    if (current.camTarget != old.camTarget && current.camTarget == "cam1")
+    {
+        vars.setStartTime = true;
+        return true;
+    }
 }
 
 onStart
 {
-    vars.setStartTime = true;
     vars.chaptersVisited = new List<String>() { "None" };
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
