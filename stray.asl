@@ -38,11 +38,11 @@ startup
         if (textSetting != null)
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
-    
-	settings.Add("chapterSplit", true, "Split after completing a chapter");
+
+    settings.Add("chapterSplit", true, "Split after completing a chapter");
     settings.Add("endSplit", true, "Split on completing the game");
     settings.Add("prologueSplit", false, "Split after completing Prologue");
-    settings.Add("ILTimerStart", false, "Start timer upon loading any chapter");
+    settings.Add("ILTimerStart", false, "Start timer upon loading any chapter (IL Mode)");
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
 
@@ -178,10 +178,13 @@ onStart
 
 split
 {
-    if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+    if(settings["chapterSplit"] && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
     {
         vars.chaptersVisited.Add(current.chapter);
-        return true;
+        if(current.chapter != "InsideTheWall" || settings["prologueSplit"])
+        {
+            return true;
+        }
     }
 
     if(current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
@@ -192,7 +195,10 @@ split
     if(vars.endTimeStopwatch.Elapsed.TotalSeconds >= vars.endTimeOffset)
     {
         vars.endTimeStopwatch.Reset();
-        return true;
+        if(settings["endSplit"])
+        {
+            return true;
+        }
     }
 }
 
