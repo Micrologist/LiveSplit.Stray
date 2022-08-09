@@ -39,7 +39,7 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 	
-	settings.Add("ILTimerStart", false, "Start timer upon loading any chapter");
+    settings.Add("ILTimerStart", false, "Start timer upon loading any chapter");
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
 
