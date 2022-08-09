@@ -160,7 +160,7 @@ start
         vars.setStartTime = true;
         return true;
     }
-    else if (settings["ILTimerStart"] && current.chapter != old.chapter)
+    else if (settings["ILTimerStart"] && current.chapter != old.chapter && current.chapter != "None")
     {
         return true;
     }
