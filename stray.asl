@@ -171,7 +171,7 @@ onStart
 
 split
 {
-    if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter) && current.chapter != "InsideTheWall")
+    if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
     {
         vars.chaptersVisited.Add(current.chapter);
         return true;
