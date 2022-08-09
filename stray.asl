@@ -155,9 +155,13 @@ update
 
 start
 {
-    if ((current.camTarget != old.camTarget && current.camTarget == "cam1") || (settings["ILTimerStart"] && current.chapter != old.chapter))
+    if (current.camTarget != old.camTarget && current.camTarget == "cam1")
     {
         vars.setStartTime = true;
+        return true;
+    }
+    else if (settings["ILTimerStart"] && current.chapter != old.chapter)
+    {
         return true;
     }
 }
