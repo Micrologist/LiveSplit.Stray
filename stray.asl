@@ -39,10 +39,15 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 
-    settings.Add("chapterSplit", true, "Split on completing a chapter");
-    settings.Add("endSplit", true, "Split on completing the game");
-    settings.Add("prologueSplit", false, "Split on completing Prologue");
-    settings.Add("ILTimerStart", false, "Start timer upon loading any chapter (IL Mode)");
+    settings.Add("Splits", true, "Splits");
+    settings.Add("chapterSplit", true, "Split on completing a chapter", "Splits");
+    settings.Add("endSplit", true, "Split on completing the game", "Splits");
+    settings.Add("prologueSplit", false, "Split on completing Prologue", "Splits");
+
+    settings.Add("ILMode", false, "IL Mode");
+    settings.Add("ILTimerStart", true, "Start timer upon loading any chapter", "ILMode");
+    settings.Add("ILTimerRestart", false, "Reset your timer upon leaving a chapter", "ILMode");
+
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
 
@@ -163,11 +168,23 @@ start
 {
     if (current.camTarget != old.camTarget && current.camTarget == "cam1")
     {
+        vars.startTimeOffset = 0.567f;
         vars.setStartTime = true;
         return true;
     }
+
+    //Determines if the player is using "ItW skip" which skips the beginning in return for a offset agreed on by mods
+    if (old.chapter == "None" && current.chapter == "InsideTheWall")
+    {
+        vars.startTimeOffset = 208;
+        vars.setStartTime = true;
+        return true;
+    }
+
     else if (settings["ILTimerStart"] && current.chapter != old.chapter && current.chapter != "None")
     {
+        vars.startTimeOffset = 0.567f;
+        vars.setStartTime = true;
         return true;
     }
 }
@@ -177,6 +194,14 @@ onStart
     vars.chaptersVisited = new List<String>() { "None" };
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
+}
+
+reset
+{
+    if (settings["ILTimerRestart"] && current.map == "HK_Project_MainStart" && current.chapter == "None")
+    {
+    return true;
+    }
 }
 
 split
