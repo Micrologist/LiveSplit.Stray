@@ -39,9 +39,9 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 
-    settings.Add("chapterSplit", true, "Split after completing a chapter");
+    settings.Add("chapterSplit", true, "Split on completing a chapter");
     settings.Add("endSplit", true, "Split on completing the game");
-    settings.Add("prologueSplit", false, "Split after completing Prologue");
+    settings.Add("prologueSplit", false, "Split on completing Prologue");
     settings.Add("ILTimerStart", false, "Start timer upon loading any chapter (IL Mode)");
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
