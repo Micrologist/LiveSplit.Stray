@@ -53,6 +53,9 @@ init
     int moduleSize = modules.First().ModuleMemorySize;
     switch (moduleSize)
     {
+        case 89993216:
+            version = "rev. 26237";
+            break;
         case 91013120:
             version = "rev. 26195";
             break;
