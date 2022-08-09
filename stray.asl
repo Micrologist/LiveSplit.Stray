@@ -40,6 +40,7 @@ startup
     });
 
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
+    settings.Add("ILTimerStart", false, "Starts timer upon loading any chapter");
 }
 
 init
@@ -154,7 +155,7 @@ update
 
 start
 {
-    if (current.camTarget != old.camTarget && current.camTarget == "cam1")
+    if (current.camTarget != old.camTarget && current.camTarget == "cam1" || (settings["ILTimerStart"] && current.chapter != old.chapter))
     {
         vars.setStartTime = true;
         return true;
@@ -170,7 +171,7 @@ onStart
 
 split
 {
-    if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+    if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter) && current.chapter != "InsideTheWall")
     {
         vars.chaptersVisited.Add(current.chapter);
         return true;
