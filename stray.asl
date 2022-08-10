@@ -2,7 +2,6 @@ state("Stray-Win64-Shipping"){}
 
 startup
 {
-    vars.startTimeOffset = 0.567f;
     vars.endTimeOffset = 0.817f;
     vars.endTimeStopwatch = new Stopwatch();
     vars.chaptersVisited = new List<String>() { "None" };
