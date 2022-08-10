@@ -200,7 +200,7 @@ reset
 {
     if (settings["ILTimerRestart"] && current.map == "HK_Project_MainStart" && current.chapter == "None")
     {
-    return true;
+        return true;
     }
 }
 
