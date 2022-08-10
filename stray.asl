@@ -133,6 +133,7 @@ init
     vars.watchers = new MemoryWatcherList
     {
         new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0x348, 0x90)) { Name = "saveDataPtr" },
+        new MemoryWatcher<long>(new DeepPointer(vars.GameEngine, 0xD28, 0x348, 0x90, 0x28)) { Name = "lastSaveTicks" },
         new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0xF0, 0xE0, 0x68)) { Name = "loadingAudioPtr" },
         new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x608, 0xEA0)) { Name = "camViewTargetPtr"},
         new MemoryWatcher<int>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x2B8, 0x3F0)) { Name = "hudFlag"}
@@ -146,6 +147,7 @@ update
     current.loading = vars.watchers["loadingAudioPtr"].Current != IntPtr.Zero;
     current.chapter = vars.GetNameFromFName(vars.watchers["saveDataPtr"].Current+0x110);
     current.camTarget = vars.GetNameFromFName(vars.watchers["camViewTargetPtr"].Current+0x18);
+    current.lastSaveTicks = vars.watchers["lastSaveTicks"].Current;
     var map = vars.GetNameFromFName(game.ReadValue<IntPtr>((IntPtr)vars.UWorld)+0x18);
     if(!String.IsNullOrEmpty(map) && map != "None")
     {
@@ -160,6 +162,7 @@ update
         vars.SetTextComponent("Cam Target", current.camTarget);
         vars.SetTextComponent("Hud Flag", current.hudFlag.ToString("X8"));
         vars.SetTextComponent("Chapters Visited", vars.chaptersVisited.Count.ToString());
+        vars.SetTextComponent("Last Save", new DateTime(current.lastSaveTicks).ToString());
     }
 }
 
