@@ -4,7 +4,6 @@ startup
 {
     vars.endTimeOffset = 0.817f;
     vars.endTimeStopwatch = new Stopwatch();
-    vars.chaptersVisited = new List<String>() { "None" };
 
     // Asks user to change to game time if LiveSplit is currently set to Real Time.
     if (timer.CurrentTimingMethod == TimingMethod.RealTime)
@@ -41,7 +40,8 @@ startup
     settings.Add("Splits", true, "Splits");
     settings.Add("chapterSplit", true, "Split on completing a chapter", "Splits");
     settings.Add("endSplit", true, "Split on completing the game", "Splits");
-    settings.Add("prologueSplit", false, "Split on completing Prologue", "Splits");
+    settings.Add("prologueSplit", false, "Split on completing the prologue", "Splits");
+    settings.Add("checkpointSplit", false, "Split on getting a new checkpoint", "Splits");
 
     settings.Add("ILMode", false, "IL Mode");
     settings.Add("ILTimerStart", true, "Start timer upon loading any chapter", "ILMode");
@@ -147,7 +147,7 @@ update
     current.loading = vars.watchers["loadingAudioPtr"].Current != IntPtr.Zero;
     current.chapter = vars.GetNameFromFName(vars.watchers["saveDataPtr"].Current+0x110);
     current.camTarget = vars.GetNameFromFName(vars.watchers["camViewTargetPtr"].Current+0x18);
-    current.lastSaveTicks = vars.watchers["lastSaveTicks"].Current;
+    current.checkpointTime = vars.watchers["lastSaveTicks"].Current;
     var map = vars.GetNameFromFName(game.ReadValue<IntPtr>((IntPtr)vars.UWorld)+0x18);
     if(!String.IsNullOrEmpty(map) && map != "None")
     {
@@ -162,7 +162,7 @@ update
         vars.SetTextComponent("Cam Target", current.camTarget);
         vars.SetTextComponent("Hud Flag", current.hudFlag.ToString("X8"));
         vars.SetTextComponent("Chapters Visited", vars.chaptersVisited.Count.ToString());
-        vars.SetTextComponent("Last Save", new DateTime(current.lastSaveTicks).ToString());
+        vars.SetTextComponent("Last Save", new DateTime(current.checkpointTime).ToString());
     }
 }
 
@@ -194,6 +194,7 @@ start
 onStart
 {
     vars.chaptersVisited = new List<String>() { "None" };
+    vars.lastSaveTime = 1;
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
 }
@@ -208,13 +209,20 @@ reset
 
 split
 {
-    if(settings["chapterSplit"] && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+    if(!settings["checkpointSplit"] && settings["chapterSplit"] && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
     {
         vars.chaptersVisited.Add(current.chapter);
         if(current.chapter != "InsideTheWall" || settings["prologueSplit"])
         {
             return true;
         }
+    }
+
+    if(settings["checkpointSplit"] && current.checkpointTime != old.checkpointTime && current.checkpointTime > vars.lastSaveTime)
+    {
+        vars.lastSaveTime = current.checkpointTime;
+        print(old.checkpointTime + " " + current.checkpointTime);
+        return true;
     }
 
     if(current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
