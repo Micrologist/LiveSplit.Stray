@@ -75,6 +75,7 @@ init
     }
 
     vars.setStartTime = false;
+    vars.chaptersVisited = new List<String>() { "None" };
 
     vars.GetFNamePool = (Func<IntPtr>) (() => {	
         var scanner = new SignatureScanner(game, modules.First().BaseAddress, (int)modules.First().ModuleMemorySize);
@@ -194,7 +195,7 @@ start
 onStart
 {
     vars.chaptersVisited = new List<String>() { "None" };
-    vars.lastSaveTime = 1;
+    vars.lastSaveTime = 0;
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
 }
@@ -221,8 +222,10 @@ split
     if(settings["checkpointSplit"] && current.checkpointTime != old.checkpointTime && current.checkpointTime > vars.lastSaveTime)
     {
         vars.lastSaveTime = current.checkpointTime;
-        print(old.checkpointTime + " " + current.checkpointTime);
-        return true;
+        if(old.checkpointTime != 0)
+        {
+            return true;
+        }
     }
 
     if(current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
