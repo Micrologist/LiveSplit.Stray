@@ -38,14 +38,26 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 
+    //Chapter Name, How many times hudFlag changes within that chapter (Unrestricted, Glitchless), The time it takes for the last fadeout to finish
+    vars.ILEndings = new Dictionary<string, Tuple<int, int, float>>()
+    {
+        { "InsideTheWall", new Tuple<int, int, float>(3, 4, 0.500f)},
+        { "Rooftops", new Tuple<int, int, float>(4, 4, 4.267f)},
+        { "SlumsPart2", new Tuple<int, int, float>(8, 8, 0.333f)},
+        { "AntVillage", new Tuple<int, int, float>(2, 4, 1.433f)},
+        { "Jail", new Tuple<int, int, float>(20, 20, 0.733f)}
+    };
+
     settings.Add("Splits", true, "Splits");
     settings.Add("chapterSplit", true, "Split on completing a chapter", "Splits");
     settings.Add("endSplit", true, "Split on completing the game", "Splits");
     settings.Add("prologueSplit", false, "Split on completing Prologue", "Splits");
+    settings.Add("autoReset", false, "Reset on making a new save","Splits");
 
     settings.Add("ILMode", false, "IL Mode");
+    settings.Add("unrestricted", true, "Unrestricted ILs", "ILMode");
     settings.Add("ILTimerStart", true, "Start timer upon loading any chapter", "ILMode");
-    settings.Add("ILTimerRestart", false, "Reset your timer upon leaving a chapter", "ILMode");
+    settings.Add("ILTimerRestart", false, "Reset on leaving a chapter", "ILMode");
 
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
@@ -180,7 +192,7 @@ start
         return true;
     }
 
-    else if (settings["ILTimerStart"] && current.chapter != old.chapter && current.chapter != "None")
+    else if (settings["ILTimerStart"] && current.map != old.map && current.map != "HK_Project_MainStart")
     {
         vars.startTimeOffset = 0.567f;
         vars.setStartTime = true;
@@ -197,7 +209,12 @@ onStart
 
 reset
 {
-    if (settings["ILTimerRestart"] && current.map == "HK_Project_MainStart" && current.chapter == "None")
+    if(settings["autoReset"] && current.camTarget != old.camTarget && current.camTarget == "cam1")
+    {
+        return true;
+    }
+
+    if(settings["ILTimerRestart"] && current.map == "HK_Project_MainStart" && current.chapter == "None")
     {
         return true;
     }
@@ -205,27 +222,42 @@ reset
 
 split
 {
-    if(settings["chapterSplit"] && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+    if((settings["chapterSplit"] || settings["ILMode"]) && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
     {
         vars.chaptersVisited.Add(current.chapter);
-        if(current.chapter != "InsideTheWall" || settings["prologueSplit"])
+        if((!settings["ILMode"] && current.chapter != "InsideTheWall") || (settings["ILMode"] && old.chapter != "None") || settings["prologueSplit"])
         {
             return true;
         }
     }
 
-    if(current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
+    if(settings["ILMode"] && current.hudFlag != old.hudFlag)
     {
+        vars.hudFlagCounter++;
+
+        if((settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item1)|| 
+        (!settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item2))
+        {
+            vars.hudFlagCounter = 0;
+            vars.endTimeOffset = vars.ILEndings[current.chapter].Item3;
+            vars.endTimeStopwatch.Restart();
+        }
+    }
+    else if(settings["ILMode"] && current.camTarget == "ClemUnderArrest_CamIntro2")
+    {
+        return true;
+    }
+
+    if((settings["endSplit"] || settings["ILMode"]) && current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
+    {
+        vars.endTimeOffset = 0.817f;
         vars.endTimeStopwatch.Restart();
     }
 
     if(vars.endTimeStopwatch.Elapsed.TotalSeconds >= vars.endTimeOffset)
     {
         vars.endTimeStopwatch.Reset();
-        if(settings["endSplit"])
-        {
-            return true;
-        }
+        return true;
     }
 }
 
