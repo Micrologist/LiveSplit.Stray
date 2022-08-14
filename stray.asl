@@ -2,9 +2,9 @@ state("Stray-Win64-Shipping"){}
 
 startup
 {
-    vars.endTimeOffset = 0.817f;
     vars.endTimeStopwatch = new Stopwatch();
     vars.chaptersVisited = new List<String>() { "None" };
+    vars.hudFlagCounter = 0;
 
     // Asks user to change to game time if LiveSplit is currently set to Real Time.
     if (timer.CurrentTimingMethod == TimingMethod.RealTime)
@@ -243,6 +243,7 @@ split
             vars.endTimeStopwatch.Restart();
         }
     }
+    
     else if(settings["ILMode"] && current.camTarget == "ClemUnderArrest_CamIntro2")
     {
         return true;
