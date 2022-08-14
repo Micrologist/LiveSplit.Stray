@@ -233,7 +233,7 @@ split
         vars.endTimeStopwatch.Restart();
     }
 
-    if(vars.endTimeStopwatch.Elapsed.TotalSeconds >= vars.endTimeOffset)
+    if(vars.endTimeStopwatch.IsRunning && vars.endTimeStopwatch.Elapsed.TotalSeconds >= vars.endTimeOffset)
     {
         vars.endTimeStopwatch.Reset();
         return true;
