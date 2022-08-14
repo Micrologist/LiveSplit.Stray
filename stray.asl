@@ -88,54 +88,30 @@ init
 
     vars.setStartTime = false;
 
-    vars.GetFNamePool = (Func<IntPtr>) (() => {	
+    vars.GetStaticPointerFromSig = (Func<string, int, IntPtr>) ( (signature, instructionOffset) => {
         var scanner = new SignatureScanner(game, modules.First().BaseAddress, (int)modules.First().ModuleMemorySize);
-        var pattern = new SigScanTarget("74 09 48 8D 15 ?? ?? ?? ?? EB 16");
-        var gameOffset = scanner.Scan(pattern);
-        if (gameOffset == IntPtr.Zero) return IntPtr.Zero;
-        int offset = game.ReadValue<int>((IntPtr)gameOffset+0x5);
-        return (IntPtr)gameOffset+offset+0x9;
+        var pattern = new SigScanTarget(signature);
+        var location = scanner.Scan(pattern);
+        if (location == IntPtr.Zero) return IntPtr.Zero;
+        int offset = game.ReadValue<int>((IntPtr)location + instructionOffset);
+        return (IntPtr)location + offset + instructionOffset + 0x4;
     });
 
-    vars.GetUWorld = (Func<IntPtr>) (() => {	
-        var scanner = new SignatureScanner(game, modules.First().BaseAddress, (int)modules.First().ModuleMemorySize);
-        var pattern = new SigScanTarget("0F 2E ?? 74 ?? 48 8B 1D ?? ?? ?? ?? 48 85 DB 74");
-        var gameOffset = scanner.Scan(pattern);
-        if (gameOffset == IntPtr.Zero) return IntPtr.Zero;
-        int offset = game.ReadValue<int>((IntPtr)gameOffset+0x8);
-        return (IntPtr)gameOffset+offset+0xC;
-    });
-
-    vars.GetGameEngine = (Func<IntPtr>) (() => {	
-        var scanner = new SignatureScanner(game, modules.First().BaseAddress, (int)modules.First().ModuleMemorySize);
-        var pattern = new SigScanTarget("48 89 05 ?? ?? ?? ?? 48 85 C9 74 05 E8 ?? ?? ?? ?? 48 8D 4D F0 E8 ?? ?? ?? ?? 0F 28 D6 0F 28 CF B9");
-        var gameOffset = scanner.Scan(pattern);
-        if (gameOffset == IntPtr.Zero) return IntPtr.Zero;
-        int offset = game.ReadValue<int>((IntPtr)gameOffset+0x3);
-        return (IntPtr)gameOffset+offset+0x7;
-	});
-
-    vars.GetNameFromFName = (Func<IntPtr, string>) ( ptr => {
-        int key = game.ReadValue<int>((IntPtr)ptr);
-        int partial = game.ReadValue<int>((IntPtr)ptr+4);
+    vars.GetNameFromFName = (Func<long, string>) ( longKey => {
+        int key = (int)(longKey & uint.MaxValue);
+        int partial = (int)(longKey >> 32);
         int chunkOffset = key >> 16;
         int nameOffset = (ushort)key;
         IntPtr namePoolChunk = memory.ReadValue<IntPtr>((IntPtr)vars.FNamePool + (chunkOffset+2) * 0x8);
         Int16 nameEntry = game.ReadValue<Int16>((IntPtr)namePoolChunk + 2 * nameOffset);
         int nameLength = nameEntry >> 6;
-        if (partial == 0)
-        {
-            return game.ReadString((IntPtr)namePoolChunk + 2 * nameOffset + 2, nameLength);
-        }
-        else
-        {
-            return game.ReadString((IntPtr)namePoolChunk + 2 * nameOffset + 2, nameLength)+"_"+partial.ToString();
-        }
+        string output = game.ReadString((IntPtr)namePoolChunk + 2 * nameOffset + 2, nameLength);
+        return (partial == 0) ? output : output + "_" + partial.ToString();
     });
-
-    vars.FNamePool = vars.GetFNamePool();
-    vars.UWorld = vars.GetUWorld();
-    vars.GameEngine = vars.GetGameEngine();
+    
+    vars.FNamePool = vars.GetStaticPointerFromSig("74 09 48 8D 15 ?? ?? ?? ?? EB 16", 0x5);
+    vars.UWorld = vars.GetStaticPointerFromSig("0F 2E ?? 74 ?? 48 8B 1D ?? ?? ?? ?? 48 85 DB 74", 0x8);
+    vars.GameEngine = vars.GetStaticPointerFromSig("48 89 05 ?? ?? ?? ?? 48 85 C9 74 05 E8 ?? ?? ?? ?? 48 8D 4D F0 E8", 0x3);
 
     if(vars.FNamePool == IntPtr.Zero || vars.UWorld == IntPtr.Zero || vars.GameEngine == IntPtr.Zero)
     {
@@ -144,10 +120,11 @@ init
 
     vars.watchers = new MemoryWatcherList
     {
-        new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0x348, 0x90)) { Name = "saveDataPtr" },
+        new MemoryWatcher<int>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x2B8, 0x3F0)) { Name = "hudFlag"},
         new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0xF0, 0xE0, 0x68)) { Name = "loadingAudioPtr" },
-        new MemoryWatcher<IntPtr>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x608, 0xEA0)) { Name = "camViewTargetPtr"},
-        new MemoryWatcher<int>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x2B8, 0x3F0)) { Name = "hudFlag"}
+        new MemoryWatcher<long>(new DeepPointer(vars.GameEngine, 0xD28, 0x348, 0x90, 0x110)) { Name = "saveDataChapterFName" },
+        new MemoryWatcher<long>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x608, 0xEA0, 0x18)) { Name = "camViewTargetFName"},
+        new MemoryWatcher<long>(new DeepPointer(vars.UWorld, 0x18)) { Name = "worldFName"}
     };
 }
 
@@ -156,9 +133,10 @@ update
     vars.watchers.UpdateAll(game);
     current.hudFlag = vars.watchers["hudFlag"].Current;
     current.loading = vars.watchers["loadingAudioPtr"].Current != IntPtr.Zero;
-    current.chapter = vars.GetNameFromFName(vars.watchers["saveDataPtr"].Current+0x110);
-    current.camTarget = vars.GetNameFromFName(vars.watchers["camViewTargetPtr"].Current+0x18);
-    var map = vars.GetNameFromFName(game.ReadValue<IntPtr>((IntPtr)vars.UWorld)+0x18);
+    current.chapter = vars.GetNameFromFName(vars.watchers["saveDataChapterFName"].Current);
+    current.camTarget = vars.GetNameFromFName(vars.watchers["camViewTargetFName"].Current);
+    var map = vars.GetNameFromFName(vars.watchers["worldFName"].Current);
+
     if(!String.IsNullOrEmpty(map) && map != "None")
     {
         current.map = map;
