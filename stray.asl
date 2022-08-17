@@ -183,6 +183,7 @@ onStart
     vars.chaptersVisited = new List<String>() { "None" };
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
+    vars.hudFlagCounter = 0;
 }
 
 reset
@@ -216,7 +217,6 @@ split
         if((settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item1)|| 
         (!settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item2))
         {
-            vars.hudFlagCounter = 0;
             vars.endTimeOffset = vars.ILEndings[current.chapter].Item3;
             vars.endTimeStopwatch.Restart();
         }
