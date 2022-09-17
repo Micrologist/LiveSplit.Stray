@@ -2,9 +2,9 @@ state("Stray-Win64-Shipping"){}
 
 startup
 {
+    vars.startTimeOffset = 0.567f;
     vars.endTimeStopwatch = new Stopwatch();
     vars.chaptersVisited = new List<String>() { "None" };
-    vars.hudFlagCounter = 0;
 
     // Asks user to change to game time if LiveSplit is currently set to Real Time.
     if (timer.CurrentTimingMethod == TimingMethod.RealTime)
@@ -38,26 +38,18 @@ startup
             textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
     });
 
-    //Chapter Name, How many times hudFlag changes within that chapter (Unrestricted, Glitchless), The time it takes for the last fadeout to finish
-    vars.ILEndings = new Dictionary<string, Tuple<int, int, float>>()
-    {
-        { "InsideTheWall", new Tuple<int, int, float>(3, 4, 0.500f)},
-        { "Rooftops", new Tuple<int, int, float>(4, 4, 4.267f)},
-        { "SlumsPart2", new Tuple<int, int, float>(8, 8, 0.333f)},
-        { "AntVillage", new Tuple<int, int, float>(2, 4, 1.433f)},
-        { "Jail", new Tuple<int, int, float>(20, 20, 0.733f)}
-    };
-
     settings.Add("Splits", true, "Splits");
     settings.Add("chapterSplit", true, "Split on completing a chapter", "Splits");
     settings.Add("endSplit", true, "Split on completing the game", "Splits");
     settings.Add("prologueSplit", false, "Split on completing Prologue", "Splits");
     settings.Add("autoReset", false, "Reset on making a new save","Splits");
 
-    settings.Add("ILMode", false, "IL Mode");
-    settings.Add("unrestricted", true, "Unrestricted ILs", "ILMode");
-    settings.Add("ILTimerStart", true, "Start timer upon loading any chapter", "ILMode");
-    settings.Add("ILTimerRestart", false, "Reset on leaving a chapter", "ILMode");
+    settings.Add("100", false, "[100%] Optional Splits", "Splits");
+    settings.Add("100Sewer", true, "Split on loading back into sewers", "100");
+
+    settings.Add("ILMode", false, "[IL] Functions", "Splits");
+    settings.Add("ILStart", true, "Start timer upon loading any chapter", "ILMode");
+    settings.Add("ILReset", false, "Reset on main menu", "ILMode");
 
     settings.Add("debugTextComponents", false, "[DEBUG] Show tracked values in layout");
 }
@@ -87,7 +79,7 @@ init
     }
 
     vars.setStartTime = false;
-
+    #region sigscanning
     vars.GetStaticPointerFromSig = (Func<string, int, IntPtr>) ( (signature, instructionOffset) => {
         var scanner = new SignatureScanner(game, modules.First().BaseAddress, (int)modules.First().ModuleMemorySize);
         var pattern = new SigScanTarget(signature);
@@ -117,7 +109,7 @@ init
     {
         throw new Exception("FNamePool/UWorld/GameEngine not initialized - trying again");
     }
-
+    #endregion
     vars.watchers = new MemoryWatcherList
     {
         new MemoryWatcher<int>(new DeepPointer(vars.GameEngine, 0xD28, 0x38, 0x0, 0x30, 0x2B8, 0x3F0)) { Name = "hudFlag"},
@@ -130,6 +122,7 @@ init
 
 update 
 {
+    #region Updates
     vars.watchers.UpdateAll(game);
     current.hudFlag = vars.watchers["hudFlag"].Current;
     current.loading = vars.watchers["loadingAudioPtr"].Current != IntPtr.Zero;
@@ -141,6 +134,7 @@ update
     {
         current.map = map;
     }
+    #endregion
 
     if(settings["debugTextComponents"])
     {
@@ -155,82 +149,60 @@ update
 
 start
 {
-    if (current.camTarget != old.camTarget && current.camTarget == "cam1")
+    if (current.camTarget == "cam1" || settings["ILStart"])
     {
-        vars.startTimeOffset = 0.567f;
-        vars.setStartTime = true;
-        return true;
-    }
-
-    //Determines if the player is using "ItW skip" which skips the beginning in return for a offset agreed on by mods
-    if (old.chapter == "None" && current.chapter == "InsideTheWall")
-    {
-        vars.startTimeOffset = 208;
-        vars.setStartTime = true;
-        return true;
-    }
-
-    else if (settings["ILTimerStart"] && current.map != old.map && current.map != "HK_Project_MainStart")
-    {
-        vars.startTimeOffset = 0.567f;
-        vars.setStartTime = true;
-        return true;
+        return (current.map == "BaseMap" && current.loading != old.loading && !current.loading);
     }
 }
 
 onStart
 {
     vars.chaptersVisited = new List<String>() { "None" };
+    if(!settings["prologueSplit"])
+    {
+        vars.chaptersVisited.Add("InsideTheWall");
+    }
     timer.IsGameTimePaused = true;
     vars.endTimeStopwatch.Reset();
-    vars.hudFlagCounter = 0;
 }
 
 reset
 {
-    if(settings["autoReset"] && current.camTarget != old.camTarget && current.camTarget == "cam1")
+    if(settings["autoReset"] || settings["ILReset"])
     {
-        return true;
-    }
-
-    if(settings["ILTimerRestart"] && current.map == "HK_Project_MainStart" && current.chapter == "None")
-    {
-        return true;
+        return (current.loading != old.loading && current.camTarget == "cam1") || (settings["ILReset"] && current.map == "HK_Project_MainStart");
     }
 }
 
 split
 {
-    if((settings["chapterSplit"] || settings["ILMode"]) && current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+    if(settings["chapterSplit"] || settings["ILMode"])
     {
-        vars.chaptersVisited.Add(current.chapter);
-        if((!settings["ILMode"] && current.chapter != "InsideTheWall") || (settings["ILMode"] && old.chapter != "None") || settings["prologueSplit"])
+        if(current.chapter != old.chapter && !vars.chaptersVisited.Contains(current.chapter))
+        {
+            vars.chaptersVisited.Add(current.chapter);
+            if(old.chapter != "None" || current.chapter == "InsideTheWall")
+            {
+                return true;
+            }
+        }
+    }
+
+    if(settings["100Sewer"])
+    {
+        if(current.chapter == "None" && current.camTarget != old.camTarget && current.camTarget == "BP_SplineCamera_Cine_3")
         {
             return true;
         }
     }
 
-    if(settings["ILMode"] && current.hudFlag != old.hudFlag)
+    if(settings["endSplit"] || settings["ILMode"])
     {
-        vars.hudFlagCounter++;
-
-        if((settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item1)|| 
-        (!settings["unrestricted"] && vars.hudFlagCounter == vars.ILEndings[current.chapter].Item2))
+        if(current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
         {
-            vars.endTimeOffset = vars.ILEndings[current.chapter].Item3;
+            vars.endTimeOffset = 0.817f;
             vars.endTimeStopwatch.Restart();
         }
-    }
-    
-    else if(settings["ILMode"] && current.camTarget == "ClemUnderArrest_CamIntro2")
-    {
-        return true;
-    }
-
-    if((settings["endSplit"] || settings["ILMode"]) && current.chapter == "ControlRoom" && current.camTarget == "BP_SplineCamera_4" && current.hudFlag != old.hudFlag && current.hudFlag == 0)
-    {
-        vars.endTimeOffset = 0.817f;
-        vars.endTimeStopwatch.Restart();
     }
 
     if(vars.endTimeStopwatch.IsRunning && vars.endTimeStopwatch.Elapsed.TotalSeconds >= vars.endTimeOffset)
