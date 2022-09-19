@@ -157,6 +157,7 @@ start
 
 onStart
 {
+    vars.setStartTime = true;
     vars.chaptersVisited = new List<String>() { "None" };
     if(!settings["prologueSplit"])
     {
